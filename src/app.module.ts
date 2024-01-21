@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EnvironmentModule } from './environment/environment.module';
+import { AutomationModule } from './automation/automation.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { EnvironmentModule } from './environment/environment.module';
       },
     }),
     EnvironmentModule,
+    AutomationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
