@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
+import { EnvironmentModule } from './environment/environment.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MongooseModule } from '@nestjs/mongoose';
         password: process.env.DATABASE_PASS,
       },
     }),
+    EnvironmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

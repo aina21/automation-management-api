@@ -6,10 +6,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe());
-  console.log(process.env.DATABASE_URI);
-  console.log(process.env.DATABASE_USER);
-  console.log(process.env.DATABASE_PASS);
-  console.log(process.env.DATABASE_NAME);
 
   const options = new DocumentBuilder()
     .setTitle('Automation Management API')
