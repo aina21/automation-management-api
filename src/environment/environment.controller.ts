@@ -2,7 +2,6 @@ import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { EnvironmentService } from './environment.service';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Environment } from 'src/schemas/environment.schema';
-import { ObjectId } from 'mongodb';
 
 @Controller('environment')
 export class EnvironmentController {
@@ -27,11 +26,11 @@ export class EnvironmentController {
   })
   @ApiParam({
     name: 'id',
-    type: ObjectId,
+    type: String,
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
   @ApiResponse({ status: 200, type: Environment })
-  async getEnvironmentById(@Param('id') id: ObjectId): Promise<Environment> {
+  async getEnvironmentById(@Param('id') id: string): Promise<Environment> {
     const environment = await this.environmentService.getEnvironmentById(id);
     return environment;
   }

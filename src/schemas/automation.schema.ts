@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
-import { ObjectId } from 'mongodb';
 import { HydratedDocument } from 'mongoose';
 
 export type AutomationDocument = HydratedDocument<Automation>;
@@ -15,12 +14,13 @@ export class Automation {
 
   @ApiProperty()
   @IsNotEmpty()
+  @IsString()
   @Prop({
-    type: ObjectId,
+    type: String,
     ref: 'Environment',
     required: true,
   })
-  environmentId: ObjectId;
+  environmentId: string;
 
   @ApiProperty()
   @IsNumber()

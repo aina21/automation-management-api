@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, PipelineStage, Types } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 import { Automation } from 'src/schemas/automation.schema';
 import { EnvironmentService } from 'src/environment/environment.service';
 import { DeleteAutomationDto } from 'src/automation/dto/automation.dto';
@@ -71,28 +66,18 @@ export class AutomationService {
   }
 
   async create(automationCreateRequest: Automation): Promise<Automation> {
-    try {
-      const environment = await this.environmentService.getEnvironmentById(
-        automationCreateRequest.environmentId,
-      );
-      if (!environment) {
-        throw new BadRequestException('Environment not found');
-      }
+    await this.environmentService.getEnvironmentById(
+      automationCreateRequest.environmentId,
+    );
 
-      const createdAutomation = new this.automationModel(
-        automationCreateRequest,
-      );
+    const createdAutomation = new this.automationModel(automationCreateRequest);
 
-      const automation = await createdAutomation.save();
+    const automation = await createdAutomation.save();
 
-      await this.updateCriticality();
+    await this.updateCriticality();
 
-      const result = await this.automationModel.findById(automation).exec();
-      return result;
-    } catch (error) {
-      console.error('Create Error:', error);
-      throw new Error('An error occurred during create');
-    }
+    const result = await this.automationModel.findById(automation).exec();
+    return result;
   }
 
   async findAll(
@@ -105,14 +90,11 @@ export class AutomationService {
       .find()
       .sort({ [sortName]: sortOption })
       .exec();
-    // return result.map(this.toResponseDto);
     return result;
   }
 
   async findByEnvironmentId(environmentId: string): Promise<Automation[]> {
-    await this.environmentService.getEnvironmentById(
-      new Types.ObjectId(environmentId),
-    );
+    await this.environmentService.getEnvironmentById(environmentId);
 
     const result = await this.automationModel
       .find({

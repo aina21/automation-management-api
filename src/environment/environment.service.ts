@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Environment } from '../schemas/environment.schema';
-import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class EnvironmentService {
@@ -22,13 +21,12 @@ export class EnvironmentService {
     return environments;
   }
 
-  async getEnvironmentById(environmentId: ObjectId): Promise<Environment> {
-    const environment = await this.environmentModel
-      .findById(environmentId)
-      .exec();
+  async getEnvironmentById(environmentId: string): Promise<Environment> {
+    const objectId = new Types.ObjectId(environmentId);
+    const environment = await this.environmentModel.findById(objectId).exec();
     if (!environment) {
       throw new NotFoundException('Environment not found');
     }
-    return null;
+    return environment;
   }
 }
