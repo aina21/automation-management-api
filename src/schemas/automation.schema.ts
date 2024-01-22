@@ -14,14 +14,13 @@ export class Automation {
   name: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
   @Prop({
     type: ObjectId,
     ref: 'Environment',
     required: true,
   })
-  environmentId: string;
+  environmentId: ObjectId;
 
   @ApiProperty()
   @IsNumber()

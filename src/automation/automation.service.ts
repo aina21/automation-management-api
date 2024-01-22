@@ -2,17 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 import { Automation } from 'src/schemas/automation.schema';
 import { EnvironmentService } from 'src/environment/environment.service';
-import {
-  DeleteAutomationDto,
-  UpdateAutomationDto,
-} from 'src/dto/automation.dto';
+import { DeleteAutomationDto } from 'src/automation/dto/automation.dto';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class AutomationService {
@@ -113,22 +110,22 @@ export class AutomationService {
   }
 
   async findByEnvironmentId(environmentId: string): Promise<Automation[]> {
-    const objectId = new Types.ObjectId(environmentId);
+    await this.environmentService.getEnvironmentById(
+      new Types.ObjectId(environmentId),
+    );
+
     const result = await this.automationModel
-      .find({ environmentId: objectId })
+      .find({
+        environmentId,
+      })
       .exec();
     return result;
   }
 
-  async update(
-    id: string,
-    criticalRatio: number,
-  ): Promise<UpdateAutomationDto> {
+  async update(id: ObjectId, criticalRatio: number): Promise<Automation> {
     try {
-      const objectId = new Types.ObjectId(id);
-
       const updatedAutomation = await this.automationModel
-        .findByIdAndUpdate(objectId, { criticalRatio }, { new: true })
+        .findByIdAndUpdate(id, { criticalRatio }, { new: true })
         .exec();
 
       // Calculate the criticality using aggregation
@@ -137,22 +134,16 @@ export class AutomationService {
       const result = await this.automationModel
         .findById(updatedAutomation)
         .exec();
-      return {
-        id: result._id.toString(),
-        criticalRatio: result.criticalRatio,
-        message: 'Automation updated',
-        status: HttpStatus.OK,
-      };
+      return result;
     } catch (error) {
       console.error('Update Error:', error);
       throw new Error('An error occurred during update');
     }
   }
 
-  async delete(id: string): Promise<DeleteAutomationDto> {
-    const objectId = new Types.ObjectId(id);
+  async delete(id: ObjectId): Promise<DeleteAutomationDto> {
     const deletedAutomation = await this.automationModel
-      .findByIdAndDelete(objectId)
+      .findByIdAndDelete(id)
       .exec();
     if (!deletedAutomation) {
       throw new NotFoundException('Automation not found');
@@ -160,7 +151,7 @@ export class AutomationService {
 
     await this.updateCriticality();
     return {
-      id: id,
+      id: id.toHexString(),
       message: 'Automation deleted',
       status: HttpStatus.OK,
     };
