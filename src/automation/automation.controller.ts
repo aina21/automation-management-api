@@ -17,8 +17,13 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { Automation } from 'src/schemas/automation.schema';
-import { DeleteAutomationDto } from 'src/automation/dto/automation.dto';
-import { ObjectId } from 'mongodb';
+import {
+  AutomationDtoResponse,
+  AutomationDtoResponseOnlyId,
+  AutomationSortDto,
+  CreateAutomationDto,
+} from './dto/automation.dto';
+import { AutomationResponseOnlyId } from './interface/Automation-response';
 
 @Controller('automation')
 export class AutomationController {
@@ -29,12 +34,13 @@ export class AutomationController {
     summary: 'Add new automation',
     description: 'Create new automation',
   })
-  @ApiResponse({ status: 201, type: Automation })
+  @ApiResponse({ status: 201, type: AutomationDtoResponse })
   async createAutomation(
-    @Body() automationBody: Automation,
+    @Body() createAutomationDto: CreateAutomationDto,
   ): Promise<Automation> {
-    return this.automationService.create(automationBody);
+    return this.automationService.create(createAutomationDto);
   }
+
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete a automation',
@@ -45,10 +51,10 @@ export class AutomationController {
     type: String,
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
-  @ApiResponse({ status: 200, type: DeleteAutomationDto })
+  @ApiResponse({ status: 200, type: AutomationDtoResponseOnlyId })
   async deleteAutomation(
-    @Param('id') id: ObjectId,
-  ): Promise<DeleteAutomationDto> {
+    @Param('id') id: string,
+  ): Promise<AutomationResponseOnlyId> {
     return this.automationService.delete(id);
   }
 
@@ -59,14 +65,14 @@ export class AutomationController {
   })
   @ApiParam({
     name: 'id',
-    type: ObjectId,
+    type: String,
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
-  @ApiResponse({ status: 200, type: Automation })
-  async updateAutomationCriticalRatio(
-    @Param('id') id: ObjectId,
+  @ApiResponse({ status: 200, type: AutomationDtoResponse })
+  async updateCriticalRatio(
+    @Param('id') id: string,
     @Body('criticalRatio') criticalRatio: number,
-  ) {
+  ): Promise<Automation> {
     return this.automationService.update(id, criticalRatio);
   }
 
@@ -75,12 +81,11 @@ export class AutomationController {
     summary: 'Get automations',
     description: 'Get all existing automations',
   })
-  @ApiResponse({ status: 200, type: [Automation] })
+  @ApiResponse({ status: 200, type: [AutomationDtoResponse] })
   async getAllAutomation(
-    @Query('sortType') sortType: 'asc' | 'desc',
-    @Query('sortName') sortName: string,
-  ) {
-    return this.automationService.findAll(sortType, sortName);
+    @Query() sortQuery?: AutomationSortDto,
+  ): Promise<Automation[]> {
+    return this.automationService.findAll(sortQuery);
   }
 
   @Get('filter')
@@ -89,11 +94,11 @@ export class AutomationController {
     description: 'Filter automations by environment id',
   })
   @ApiQuery({ name: 'environmentId', type: String })
-  @ApiResponse({ status: 200, type: [Automation] })
+  @ApiResponse({ status: 200, type: [AutomationDtoResponse] })
   @ApiNotFoundResponse({ status: 404, description: 'Not Found' })
-  async getAutomationByEnvironmentId(
+  async getAutomationByFilter(
     @Query('environmentId') environmentId: string,
-  ) {
+  ): Promise<Automation[]> {
     return this.automationService.findByEnvironmentId(environmentId);
   }
 }

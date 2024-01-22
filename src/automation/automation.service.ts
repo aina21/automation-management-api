@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { Automation } from 'src/schemas/automation.schema';
 import { EnvironmentService } from 'src/environment/environment.service';
-import { DeleteAutomationDto } from 'src/automation/dto/automation.dto';
-import { ObjectId } from 'mongodb';
+import { AutomationSortDto, CreateAutomationDto } from './dto/automation.dto';
+import { AutomationResponseOnlyId } from './interface/Automation-response';
 
 @Injectable()
 export class AutomationService {
@@ -65,11 +65,9 @@ export class AutomationService {
     }
   }
 
-  async create(automationCreateRequest: Automation): Promise<Automation> {
-    await this.environmentService.getEnvironmentById(
-      automationCreateRequest.environmentId,
-    );
-
+  async create(
+    automationCreateRequest: CreateAutomationDto,
+  ): Promise<Automation> {
     const createdAutomation = new this.automationModel(automationCreateRequest);
 
     const automation = await createdAutomation.save();
@@ -80,62 +78,66 @@ export class AutomationService {
     return result;
   }
 
-  async findAll(
-    sortType: 'asc' | 'desc' = 'asc',
-    sortName: string = 'criticality',
-  ): Promise<Automation[]> {
+  async findAll(sortQuery?: AutomationSortDto): Promise<Automation[]> {
+    const { sortType, sortName } = sortQuery || {
+      sortType: 'asc',
+      sortName: 'criticality',
+    };
+
     const sortOption = sortType === 'asc' ? 1 : -1;
 
     const result = await this.automationModel
       .find()
       .sort({ [sortName]: sortOption })
       .exec();
+
+    if (!result) {
+      throw new NotFoundException('Automation is empty');
+    }
+
     return result;
   }
 
   async findByEnvironmentId(environmentId: string): Promise<Automation[]> {
-    await this.environmentService.getEnvironmentById(environmentId);
-
     const result = await this.automationModel
       .find({
         environmentId,
       })
       .exec();
+
+    if (!result) {
+      throw new NotFoundException('Automation not found');
+    }
+
     return result;
   }
 
-  async update(id: ObjectId, criticalRatio: number): Promise<Automation> {
-    try {
-      const updatedAutomation = await this.automationModel
-        .findByIdAndUpdate(id, { criticalRatio }, { new: true })
-        .exec();
-
-      // Calculate the criticality using aggregation
-      await this.updateCriticality();
-
-      const result = await this.automationModel
-        .findById(updatedAutomation)
-        .exec();
-      return result;
-    } catch (error) {
-      console.error('Update Error:', error);
-      throw new Error('An error occurred during update');
-    }
-  }
-
-  async delete(id: ObjectId): Promise<DeleteAutomationDto> {
-    const deletedAutomation = await this.automationModel
-      .findByIdAndDelete(id)
+  async update(id: string, criticalRatio: number): Promise<Automation> {
+    const updatedAutomation = await this.automationModel
+      .findByIdAndUpdate(id, { criticalRatio }, { new: true })
       .exec();
-    if (!deletedAutomation) {
+
+    if (!updatedAutomation) {
       throw new NotFoundException('Automation not found');
     }
 
     await this.updateCriticality();
-    return {
-      id: id.toHexString(),
-      message: 'Automation deleted',
-      status: HttpStatus.OK,
-    };
+
+    const result = await this.automationModel
+      .findById(updatedAutomation)
+      .exec();
+    return result;
+  }
+
+  async delete(id: string): Promise<AutomationResponseOnlyId> {
+    const deletedAutomation = await this.automationModel
+      .findByIdAndDelete(id)
+      .exec();
+
+    if (!deletedAutomation) {
+      throw new NotFoundException('Automation not found');
+    }
+
+    return { id: deletedAutomation._id.toString() };
   }
 }

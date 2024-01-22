@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { EnvironmentService } from './environment.service';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Environment } from 'src/schemas/environment.schema';
+import { EnvironmentDto } from './dto/environment.dto';
 
 @Controller('environment')
 export class EnvironmentController {
@@ -12,8 +13,10 @@ export class EnvironmentController {
     summary: 'Add new environment',
     description: 'Create new environment',
   })
-  @ApiResponse({ status: 201, type: Environment })
-  async createEnvironment(@Body() request: Environment): Promise<Environment> {
+  @ApiResponse({ status: 201, type: EnvironmentDto })
+  async createEnvironment(
+    @Body() request: EnvironmentDto,
+  ): Promise<Environment> {
     const environment =
       await this.environmentService.createEnvironment(request);
     return environment;
@@ -29,8 +32,8 @@ export class EnvironmentController {
     type: String,
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
-  @ApiResponse({ status: 200, type: Environment })
-  async getEnvironmentById(@Param('id') id: string): Promise<Environment> {
+  @ApiResponse({ status: 200, type: EnvironmentDto })
+  async getEnvironmentById(@Param('id') id: string): Promise<EnvironmentDto> {
     const environment = await this.environmentService.getEnvironmentById(id);
     return environment;
   }
@@ -40,8 +43,8 @@ export class EnvironmentController {
     summary: 'Get environments',
     description: 'Get all existing environments',
   })
-  @ApiResponse({ status: 200, type: [Environment] })
-  async getAllEnvironments(): Promise<Environment[]> {
+  @ApiResponse({ status: 200, type: [EnvironmentDto] })
+  async getAllEnvironments(): Promise<EnvironmentDto[]> {
     const environments = await this.environmentService.getAllEnvironments();
     return environments;
   }
