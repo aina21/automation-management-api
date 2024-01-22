@@ -2,7 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { GlobalExceptionFilter } from './common/exception/global-exception.filter';
+import { HttpExceptionFilter } from './common/exception/http-exceptions.filter';
+import { DatabaseExceptionFilter } from './common/exception/database-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,7 +13,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new DatabaseExceptionFilter());
 
   const options = new DocumentBuilder()
     .setTitle('Automation Management API')
