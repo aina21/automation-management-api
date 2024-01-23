@@ -1,15 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
-import { Automation } from 'src/schemas/automation.schema';
 import { AutomationSortDto, CreateAutomationDto } from './dto/automation.dto';
 import { AutomationResponseOnlyId } from './interface/Automation-response';
+import { Automation } from '../schemas/automation.schema';
+import { EnvironmentService } from 'src/environment/environment.service';
 
 @Injectable()
 export class AutomationService {
   constructor(
     @InjectModel(Automation.name)
     private readonly automationModel: Model<Automation>,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async updateCriticality() {
@@ -28,20 +34,29 @@ export class AutomationService {
         },
       ];
 
-      const automationDocs =
-        await this.automationModel.aggregate(aggregationPipeline);
+      let bulkWriteOperations = [];
+      const batchSize = 1000;
 
-      const batchSize = 1000; // Define the batch size
-      for (let i = 0; i < automationDocs.length; i += batchSize) {
-        const batch = automationDocs.slice(i, i + batchSize);
+      const cursor = this.automationModel
+        .aggregate(aggregationPipeline)
+        .cursor({ batchSize });
 
-        const bulkWriteOperations = batch.map((automationDoc) => ({
+      await cursor.eachAsync(async (doc) => {
+        bulkWriteOperations.push({
           updateOne: {
-            filter: { _id: automationDoc._id },
-            update: { $set: { criticality: automationDoc.criticality } },
+            filter: { _id: doc._id },
+            update: { $set: { criticality: doc.criticality } },
           },
-        }));
+        });
 
+        if (bulkWriteOperations.length === batchSize) {
+          await this.automationModel.bulkWrite(bulkWriteOperations);
+          bulkWriteOperations = []; // Reset the batch
+        }
+      });
+
+      // Process any remaining operations in the last batch
+      if (bulkWriteOperations.length > 0) {
         await this.automationModel.bulkWrite(bulkWriteOperations);
       }
     } catch (error) {
@@ -55,6 +70,13 @@ export class AutomationService {
   ): Promise<Automation> {
     const createdAutomation = new this.automationModel(automationCreateRequest);
 
+    const environment = await this.environmentService.getEnvironmentById(
+      automationCreateRequest.environmentId,
+    );
+    if (!environment) {
+      throw new BadRequestException('Environment not found');
+    }
+    
     const automation = await createdAutomation.save();
 
     await this.updateCriticality();

@@ -12,5 +12,6 @@ import { EnvironmentController } from './environment.controller';
   ],
   controllers: [EnvironmentController],
   providers: [EnvironmentService],
+  exports: [EnvironmentService],
 })
 export class EnvironmentModule {}

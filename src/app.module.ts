@@ -17,21 +17,21 @@ import { AutomationModule } from './automation/automation.module';
       },
     ]),
     //connect to docker mongodb
-    // MongooseModule.forRoot(process.env.DATABASE_URI, {
-    //   dbName: process.env.DATABASE_NAME,
-    //   auth: {
-    //     username: process.env.DATABASE_USER,
-    //     password: process.env.DATABASE_PASS,
-    //   },
-    // }),
-    // connect to mongodb atlas
-    MongooseModule.forRootAsync({
-      useFactory: (): MongooseModuleOptions => ({
-        uri: `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER_URI}/${process.env.MONGO_DATABASE}?retryWrites=true&w=majority`,
-        retryAttempts: 6,
-        retryDelay: 1000,
-      }),
+    MongooseModule.forRoot(process.env.DATABASE_URI, {
+      dbName: process.env.DATABASE_NAME,
+      auth: {
+        username: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+      },
     }),
+    // connect to mongodb atlas
+    // MongooseModule.forRootAsync({
+    //   useFactory: (): MongooseModuleOptions => ({
+    //     uri: `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER_URI}/${process.env.MONGO_DATABASE}?retryWrites=true&w=majority`,
+    //     retryAttempts: 6,
+    //     retryDelay: 1000,
+    //   }),
+    // }),
     EnvironmentModule,
     AutomationModule,
   ],
