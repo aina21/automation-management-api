@@ -30,13 +30,20 @@ export class AutomationService {
 
       const automationDocs =
         await this.automationModel.aggregate(aggregationPipeline);
-      const bulkWriteOperations = automationDocs.map((automationDoc) => ({
-        updateOne: {
-          filter: { _id: automationDoc._id },
-          update: { criticality: automationDoc.criticality },
-        },
-      }));
-      await this.automationModel.bulkWrite(bulkWriteOperations);
+
+      const batchSize = 1000; // Define the batch size
+      for (let i = 0; i < automationDocs.length; i += batchSize) {
+        const batch = automationDocs.slice(i, i + batchSize);
+
+        const bulkWriteOperations = batch.map((automationDoc) => ({
+          updateOne: {
+            filter: { _id: automationDoc._id },
+            update: { $set: { criticality: automationDoc.criticality } },
+          },
+        }));
+
+        await this.automationModel.bulkWrite(bulkWriteOperations);
+      }
     } catch (error) {
       console.error('Aggregation Error:', error);
       throw error;
@@ -57,15 +64,19 @@ export class AutomationService {
   }
 
   async findAll(sortQuery?: AutomationSortDto): Promise<Automation[]> {
-    const { sortType, sortName } = sortQuery || {
-      sortType: 'asc',
-      sortName: 'criticality',
-    };
-
+    const {
+      sortType = 'asc',
+      sortName = 'criticality',
+      page = 1,
+      limit = 10,
+    } = sortQuery || {};
+    const skip = (page - 1) * limit;
     const sortOption = sortType === 'asc' ? 1 : -1;
 
     const result = await this.automationModel
       .find()
+      .skip(skip)
+      .limit(limit)
       .sort({ [sortName]: sortOption })
       .exec();
 
@@ -76,11 +87,27 @@ export class AutomationService {
     return result;
   }
 
-  async findByEnvironmentId(environmentId: string): Promise<Automation[]> {
+  async findByEnvironmentId(
+    environmentId: string,
+    sortQuery?: AutomationSortDto,
+  ): Promise<Automation[]> {
+    const {
+      sortType = 'asc',
+      sortName = 'criticality',
+      page = 1,
+      limit = 10,
+    } = sortQuery || {};
+
+    const skip = (page - 1) * limit;
+    const sortOption = sortType === 'asc' ? 1 : -1;
+
     const result = await this.automationModel
       .find({
         environmentId,
       })
+      .skip(skip)
+      .limit(limit)
+      .sort({ [sortName]: sortOption })
       .exec();
 
     if (!result) {

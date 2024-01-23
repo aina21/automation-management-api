@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateAutomationDto {
   @ApiProperty()
@@ -44,6 +45,20 @@ export class AutomationSortDto {
   @IsIn(['name', 'criticalRatio', 'criticality'])
   @IsOptional()
   readonly sortName?: string;
+
+  @ApiProperty({ required: false, default: 1 })
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  readonly page?: number;
+
+  @ApiProperty({ required: false, default: 10 })
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  readonly limit?: number;
 }
 
 export class AutomationDtoResponse extends CreateAutomationDto {

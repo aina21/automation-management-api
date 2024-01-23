@@ -98,7 +98,8 @@ export class AutomationController {
   @ApiNotFoundResponse({ status: 404, description: 'Not Found' })
   async getAutomationByFilter(
     @Query('environmentId') environmentId: string,
+    @Query() sortQuery?: AutomationSortDto,
   ): Promise<Automation[]> {
-    return this.automationService.findByEnvironmentId(environmentId);
+    return this.automationService.findByEnvironmentId(environmentId, sortQuery);
   }
 }
