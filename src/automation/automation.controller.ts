@@ -16,11 +16,11 @@ import {
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
-import { Automation } from 'src/schemas/automation.schema';
 import {
   AutomationDtoResponse,
   AutomationDtoResponseOnlyId,
   AutomationSortDto,
+  AutomationUpdateRequestDto,
   CreateAutomationDto,
 } from './dto/automation.dto';
 import { AutomationResponseOnlyId } from './interface/Automation-response';
@@ -37,7 +37,7 @@ export class AutomationController {
   @ApiResponse({ status: 201, type: AutomationDtoResponse })
   async createAutomation(
     @Body() createAutomationDto: CreateAutomationDto,
-  ): Promise<Automation> {
+  ): Promise<AutomationDtoResponse> {
     return this.automationService.create(createAutomationDto);
   }
 
@@ -69,12 +69,11 @@ export class AutomationController {
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
   @ApiResponse({ status: 200, type: AutomationDtoResponse })
-  @ApiQuery({ name: 'criticalRatio', type: Number })
   async updateCriticalRatio(
     @Param('id') id: string,
-    @Body('criticalRatio') criticalRatio: number,
-  ): Promise<Automation> {
-    return this.automationService.update(id, criticalRatio);
+    @Body() request: AutomationUpdateRequestDto,
+  ): Promise<AutomationDtoResponse> {
+    return this.automationService.update(id, request.criticalRatio);
   }
 
   @Get()
@@ -85,22 +84,25 @@ export class AutomationController {
   @ApiResponse({ status: 200, type: [AutomationDtoResponse] })
   async getAllAutomation(
     @Query() sortQuery?: AutomationSortDto,
-  ): Promise<Automation[]> {
+  ): Promise<AutomationDtoResponse[]> {
     return this.automationService.findAll(sortQuery);
   }
 
-  @Get('filter')
+  @Get('find')
   @ApiOperation({
     summary: 'Filter automations',
     description: 'Filter automations by environment id',
   })
-  @ApiQuery({ name: 'environmentId', type: String })
+  @ApiQuery({ name: 'environmentName', type: String })
   @ApiResponse({ status: 200, type: [AutomationDtoResponse] })
   @ApiNotFoundResponse({ status: 404, description: 'Not Found' })
   async getAutomationByFilter(
-    @Query('environmentId') environmentId: string,
+    @Query('environmentName') environmentName: string,
     @Query() sortQuery?: AutomationSortDto,
-  ): Promise<Automation[]> {
-    return this.automationService.findByEnvironmentId(environmentId, sortQuery);
+  ): Promise<AutomationDtoResponse[]> {
+    return this.automationService.findByEnvironmentName(
+      environmentName,
+      sortQuery,
+    );
   }
 }

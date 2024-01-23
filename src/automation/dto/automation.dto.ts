@@ -19,7 +19,7 @@ export class CreateAutomationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  readonly environmentId: string;
+  readonly environmentName: string;
 
   @ApiProperty()
   @IsNumber()
@@ -61,7 +61,29 @@ export class AutomationSortDto {
   readonly limit?: number;
 }
 
-export class AutomationDtoResponse extends CreateAutomationDto {
+export class AutomationDtoResponse {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  readonly _id: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  readonly name: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  readonly environmentId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @IsNotEmpty()
+  readonly criticalRatio: number;
+
   @ApiProperty()
   @Min(1)
   readonly criticality: number;
@@ -70,4 +92,13 @@ export class AutomationDtoResponse extends CreateAutomationDto {
 export class AutomationDtoResponseOnlyId {
   @ApiProperty()
   readonly id: string;
+}
+
+export class AutomationUpdateRequestDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @IsNotEmpty()
+  readonly criticalRatio: number;
 }

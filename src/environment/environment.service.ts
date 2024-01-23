@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Environment } from 'src/schemas/environment.schema';
-import { EnvironmentDto } from './dto/environment.dto';
+import { EnvironmentDto, EnvironmentRequestDto } from './dto/environment.dto';
 
 @Injectable()
 export class EnvironmentService {
@@ -11,22 +11,22 @@ export class EnvironmentService {
     private readonly environmentRepository: Model<EnvironmentDto>,
   ) {}
 
-  async createEnvironment(body: Environment): Promise<EnvironmentDto> {
+  async createEnvironment(
+    body: EnvironmentRequestDto,
+  ): Promise<EnvironmentDto> {
     const createdEnvironment = new this.environmentRepository(body);
-    const environment = await createdEnvironment.save();
-    return environment;
+    return await createdEnvironment.save();
   }
 
   async getAllEnvironments(): Promise<EnvironmentDto[]> {
-    const environments = await this.environmentRepository.find().exec();
-    return environments;
+    return await this.environmentRepository.find().exec();
   }
 
-  async getEnvironmentById(environmentId: string): Promise<EnvironmentDto> {
-    const objectId = new Types.ObjectId(environmentId);
+  async getEnvironmentByName(environmentName: string): Promise<EnvironmentDto> {
     const environment = await this.environmentRepository
-      .findById(objectId)
+      .findOne({ name: environmentName })
       .exec();
+
     if (!environment) {
       throw new NotFoundException('Environment not found');
     }

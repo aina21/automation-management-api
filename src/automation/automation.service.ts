@@ -4,8 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, PipelineStage } from 'mongoose';
-import { AutomationSortDto, CreateAutomationDto } from './dto/automation.dto';
+import { Model, PipelineStage, Types } from 'mongoose';
+import {
+  AutomationDtoResponse,
+  AutomationSortDto,
+  CreateAutomationDto,
+} from './dto/automation.dto';
 import { AutomationResponseOnlyId } from './interface/Automation-response';
 import { Automation } from '../schemas/automation.schema';
 import { EnvironmentService } from 'src/environment/environment.service';
@@ -65,27 +69,63 @@ export class AutomationService {
     }
   }
 
+  convertToAutomationResponseDto(
+    automation: Automation & {
+      _id: Types.ObjectId;
+    },
+  ): AutomationDtoResponse {
+    const automationResponseDto: AutomationDtoResponse = {
+      _id: automation._id.toString(),
+      name: automation.name,
+      environmentId: automation.environmentId.toString(),
+      criticalRatio: automation.criticalRatio,
+      criticality: automation.criticality,
+    };
+
+    return automationResponseDto;
+  }
+
+  toDto(
+    automation: Automation & {
+      _id: Types.ObjectId;
+    },
+  ): AutomationDtoResponse {
+    const automationDtoResponse: AutomationDtoResponse = {
+      _id: automation._id.toString(),
+      name: automation.name,
+      environmentId: automation.environmentId.toString(),
+      criticalRatio: automation.criticalRatio,
+      criticality: automation.criticality,
+    };
+
+    return automationDtoResponse;
+  }
+
   async create(
     automationCreateRequest: CreateAutomationDto,
-  ): Promise<Automation> {
+  ): Promise<AutomationDtoResponse> {
     const createdAutomation = new this.automationModel(automationCreateRequest);
 
-    const environment = await this.environmentService.getEnvironmentById(
-      automationCreateRequest.environmentId,
+    const environment = await this.environmentService.getEnvironmentByName(
+      automationCreateRequest.environmentName,
     );
     if (!environment) {
       throw new BadRequestException('Environment not found');
     }
-    
+
+    createdAutomation.environmentId = new Types.ObjectId(environment._id);
     const automation = await createdAutomation.save();
 
     await this.updateCriticality();
 
     const result = await this.automationModel.findById(automation).exec();
-    return result;
+
+    return this.toDto(result);
   }
 
-  async findAll(sortQuery?: AutomationSortDto): Promise<Automation[]> {
+  async findAll(
+    sortQuery?: AutomationSortDto,
+  ): Promise<AutomationDtoResponse[]> {
     const {
       sortType = 'asc',
       sortName = 'criticality',
@@ -106,13 +146,13 @@ export class AutomationService {
       throw new NotFoundException('Automation is empty');
     }
 
-    return result;
+    return result.map((automation) => this.toDto(automation));
   }
 
-  async findByEnvironmentId(
-    environmentId: string,
+  async findByEnvironmentName(
+    environmentName: string,
     sortQuery?: AutomationSortDto,
-  ): Promise<Automation[]> {
+  ): Promise<AutomationDtoResponse[]> {
     const {
       sortType = 'asc',
       sortName = 'criticality',
@@ -123,9 +163,15 @@ export class AutomationService {
     const skip = (page - 1) * limit;
     const sortOption = sortType === 'asc' ? 1 : -1;
 
+    const environment =
+      await this.environmentService.getEnvironmentByName(environmentName);
+    if (!environment) {
+      throw new BadRequestException('Environment not found');
+    }
+
     const result = await this.automationModel
       .find({
-        environmentId,
+        environmentId: environment._id,
       })
       .skip(skip)
       .limit(limit)
@@ -136,10 +182,13 @@ export class AutomationService {
       throw new NotFoundException('Automation not found');
     }
 
-    return result;
+    return result.map((automation) => this.toDto(automation));
   }
 
-  async update(id: string, criticalRatio: number): Promise<Automation> {
+  async update(
+    id: string,
+    criticalRatio: number,
+  ): Promise<AutomationDtoResponse> {
     const updatedAutomation = await this.automationModel
       .findByIdAndUpdate(id, { criticalRatio }, { new: true })
       .exec();
@@ -153,7 +202,7 @@ export class AutomationService {
     const result = await this.automationModel
       .findById(updatedAutomation)
       .exec();
-    return result;
+    return this.toDto(result);
   }
 
   async delete(id: string): Promise<AutomationResponseOnlyId> {

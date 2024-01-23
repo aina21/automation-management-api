@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
+import { MongooseModule } from '@nestjs/mongoose';
 import { EnvironmentModule } from './environment/environment.module';
 import { AutomationModule } from './automation/automation.module';
 
@@ -35,7 +33,5 @@ import { AutomationModule } from './automation/automation.module';
     EnvironmentModule,
     AutomationModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
