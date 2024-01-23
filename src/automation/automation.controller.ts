@@ -69,6 +69,7 @@ export class AutomationController {
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
   @ApiResponse({ status: 200, type: AutomationDtoResponse })
+  @ApiQuery({ name: 'criticalRatio', type: Number })
   async updateCriticalRatio(
     @Param('id') id: string,
     @Body('criticalRatio') criticalRatio: number,
