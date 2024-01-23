@@ -27,11 +27,16 @@ export class AutomationService {
       const aggregationPipeline: PipelineStage[] = [
         {
           $setWindowFields: {
-            // Use $setWindowFields if applicable for your MongoDB version
+            // Sorting the documents by criticalRatio in descending order.
             sortBy: { criticalRatio: -1 },
+            // Calculating the rank for each document based on its criticalRatio.
+            // The rank is stored in the criticality field.
             output: {
               criticality: {
-                $rank: {},
+                // The $denseRank operator is used to assign a continuous rank for each distinct criticalRatio.
+                // If multiple documents have the same criticalRatio, they receive the same rank.
+                // The next rank is always incremented by 1, regardless of the number of documents with the same value.
+                $denseRank: {},
               },
             },
           },
@@ -67,22 +72,6 @@ export class AutomationService {
       console.error('Aggregation Error:', error);
       throw error;
     }
-  }
-
-  convertToAutomationResponseDto(
-    automation: Automation & {
-      _id: Types.ObjectId;
-    },
-  ): AutomationDtoResponse {
-    const automationResponseDto: AutomationDtoResponse = {
-      _id: automation._id.toString(),
-      name: automation.name,
-      environmentId: automation.environmentId.toString(),
-      criticalRatio: automation.criticalRatio,
-      criticality: automation.criticality,
-    };
-
-    return automationResponseDto;
   }
 
   toDto(
