@@ -17,17 +17,17 @@ import { AutomationModule } from './automation/automation.module';
       },
     ]),
     //connect to docker mongodb
-    MongooseModule.forRoot(process.env.DATABASE_URI, {
-      dbName: process.env.DATABASE_NAME,
+    MongooseModule.forRoot(process.env.DB_URI, {
+      dbName: process.env.DB_NAME,
       auth: {
-        username: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
+        username: process.env.DB_USER,
+        password: process.env.DB_PASS,
       },
     }),
     // connect to mongodb atlas
     // MongooseModule.forRootAsync({
     //   useFactory: (): MongooseModuleOptions => ({
-    //     uri: `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER_URI}/${process.env.MONGO_DATABASE}?retryWrites=true&w=majority`,
+    //     uri: `mongodb+srv://${process.env.MONGO_ATLAS_USERNAME}:${process.env.MONGO_ATLAS_PASSWORD}@${process.env.MONGO_ATLAS_CLUSTER_URI}/${process.env.MONGO_ATLAS_DATABASE}?retryWrites=true&w=majority`,
     //     retryAttempts: 6,
     //     retryDelay: 1000,
     //   }),
