@@ -24,7 +24,7 @@ import { AutomationModule } from './automation/automation.module';
     //     password: process.env.DATABASE_PASS,
     //   },
     // }),
-    //connect to mongodb atlas
+    // connect to mongodb atlas
     MongooseModule.forRootAsync({
       useFactory: (): MongooseModuleOptions => ({
         uri: `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER_URI}/${process.env.MONGO_DATABASE}?retryWrites=true&w=majority`,

@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { Automation } from 'src/schemas/automation.schema';
-import { EnvironmentService } from 'src/environment/environment.service';
 import { AutomationSortDto, CreateAutomationDto } from './dto/automation.dto';
 import { AutomationResponseOnlyId } from './interface/Automation-response';
 
@@ -11,45 +10,24 @@ export class AutomationService {
   constructor(
     @InjectModel(Automation.name)
     private readonly automationModel: Model<Automation>,
-    private readonly environmentService: EnvironmentService,
   ) {}
 
   async updateCriticality() {
     try {
       const aggregationPipeline: PipelineStage[] = [
         {
-          $sort: {
-            criticalRatio: -1,
-          }, // Sort by Critical Ratio in descending order
-        },
-        {
-          $group: {
-            _id: null,
-            automations: {
-              $push: '$$ROOT',
+          $setWindowFields: {
+            // Use $setWindowFields if applicable for your MongoDB version
+            sortBy: { criticalRatio: -1 },
+            output: {
+              criticality: {
+                $rank: {},
+              },
             },
           },
         },
-        {
-          $unwind: {
-            path: '$automations',
-            includeArrayIndex: 'temp',
-          },
-        },
-        {
-          $addFields: {
-            'automations.criticality': { $add: [1, '$temp'] }, // Add the 'temp' value to the 'automations' field
-          },
-        },
-        {
-          $project: {
-            temp: 0, // Exclude the 'temp' field from the output
-          },
-        },
-        {
-          $replaceRoot: { newRoot: '$automations' }, // Replace the root document with the calculated automations
-        },
       ];
+
       const automationDocs =
         await this.automationModel.aggregate(aggregationPipeline);
       const bulkWriteOperations = automationDocs.map((automationDoc) => ({
