@@ -7,12 +7,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 import {
   AutomationDtoResponse,
+  AutomationDtoResponseOnlyId,
   AutomationSortDto,
   CreateAutomationDto,
 } from './dto/automation.dto';
-import { AutomationResponseOnlyId } from './interface/Automation-response';
 import { Automation } from '../schemas/automation.schema';
 import { EnvironmentService } from 'src/environment/environment.service';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class AutomationService {
@@ -22,7 +23,19 @@ export class AutomationService {
     private readonly environmentService: EnvironmentService,
   ) {}
 
-  async updateCriticality() {
+  async updateCriticality(
+    sortQuery?: AutomationSortDto,
+    environmentId?: ObjectId,
+  ) {
+    const {
+      sortType = 'asc',
+      sortName = 'criticality',
+      page = 1,
+      limit = 10,
+    } = sortQuery || {};
+    const skip = (page - 1) * limit;
+    const sortOption = sortType === 'asc' ? 1 : -1;
+
     const aggregationPipeline: PipelineStage[] = [
       {
         $setWindowFields: {
@@ -40,34 +53,31 @@ export class AutomationService {
           },
         },
       },
+      {
+        // Sorting documents
+        $sort: { [sortName]: sortOption },
+      },
+      {
+        // Skipping documents for pagination
+        $skip: skip,
+      },
+      {
+        // Limiting the number of documents for pagination (page size)
+        $limit: limit,
+      },
     ];
 
-    let bulkWriteOperations = [];
-    const batchSize = 1000;
-
-    const cursor = this.automationModel
-      .aggregate(aggregationPipeline)
-      .cursor({ batchSize });
+    if (environmentId) {
+      aggregationPipeline.push({
+        // Filtering the results after pagination
+        $match: {
+          environmentId: environmentId,
+        },
+      });
+    }
 
     try {
-      await cursor.eachAsync(async (doc) => {
-        bulkWriteOperations.push({
-          updateOne: {
-            filter: { _id: doc._id },
-            update: { $set: { criticality: doc.criticality } },
-          },
-        });
-
-        if (bulkWriteOperations.length === batchSize) {
-          await this.automationModel.bulkWrite(bulkWriteOperations);
-          bulkWriteOperations = []; // Reset the batch
-        }
-      });
-
-      // Process any remaining operations in the last batch
-      if (bulkWriteOperations.length > 0) {
-        await this.automationModel.bulkWrite(bulkWriteOperations);
-      }
+      return this.automationModel.aggregate(aggregationPipeline).exec();
     } catch (error) {
       console.error('Aggregation Error:', error);
       throw error;
@@ -101,7 +111,7 @@ export class AutomationService {
 
   async create(
     automationCreateRequest: CreateAutomationDto,
-  ): Promise<AutomationDtoResponse> {
+  ): Promise<AutomationDtoResponseOnlyId> {
     const createdAutomation = new this.automationModel(automationCreateRequest);
 
     const environment = await this.getEnvironment(
@@ -111,68 +121,29 @@ export class AutomationService {
     createdAutomation.environmentId = new Types.ObjectId(environment._id);
     const automation = await createdAutomation.save();
 
-    await this.updateCriticality();
-
-    return this.toDto(await this.automationModel.findById(automation).exec());
+    return { id: automation._id.toString() };
   }
 
   async findAll(
     sortQuery?: AutomationSortDto,
   ): Promise<AutomationDtoResponse[]> {
-    const {
-      sortType = 'asc',
-      sortName = 'criticality',
-      page = 1,
-      limit = 10,
-    } = sortQuery || {};
-    const skip = (page - 1) * limit;
-    const sortOption = sortType === 'asc' ? 1 : -1;
-
-    const result = await this.automationModel
-      .find()
-      .skip(skip)
-      .limit(limit)
-      .sort({ [sortName]: sortOption })
-      .exec();
-
-    return result.map((automation) => this.toDto(automation));
+    return await this.updateCriticality(sortQuery);
   }
   async findByEnvironmentName(
     environmentName: string,
     sortQuery?: AutomationSortDto,
   ): Promise<AutomationDtoResponse[]> {
-    const {
-      sortType = 'asc',
-      sortName = 'criticality',
-      page = 1,
-      limit = 10,
-    } = sortQuery || {};
-
-    const skip = (page - 1) * limit;
-    const sortOption = sortType === 'asc' ? 1 : -1;
-
     const environment = await this.getEnvironment(environmentName);
-
-    const result = await this.automationModel
-      .find({
-        environmentId: environment._id,
-      })
-      .skip(skip)
-      .limit(limit)
-      .sort({ [sortName]: sortOption })
-      .exec();
-
-    if (!result) {
-      throw new NotFoundException('Automation not found');
-    }
-
-    return result.map((automation) => this.toDto(automation));
+    return await this.updateCriticality(
+      sortQuery,
+      new ObjectId(environment._id),
+    );
   }
 
   async update(
     id: string,
     criticalRatio: number,
-  ): Promise<AutomationDtoResponse> {
+  ): Promise<AutomationDtoResponseOnlyId> {
     const updatedAutomation = await this.automationModel
       .findByIdAndUpdate(id, { criticalRatio }, { new: true })
       .exec();
@@ -181,15 +152,10 @@ export class AutomationService {
       throw new NotFoundException('Automation not found');
     }
 
-    await this.updateCriticality();
-
-    const result = await this.automationModel
-      .findById(updatedAutomation)
-      .exec();
-    return this.toDto(result);
+    return { id: updatedAutomation._id.toString() };
   }
 
-  async delete(id: string): Promise<AutomationResponseOnlyId> {
+  async delete(id: string): Promise<AutomationDtoResponseOnlyId> {
     const deletedAutomation = await this.automationModel
       .findByIdAndDelete(id)
       .exec();

@@ -23,7 +23,6 @@ import {
   AutomationUpdateRequestDto,
   CreateAutomationDto,
 } from './dto/automation.dto';
-import { AutomationResponseOnlyId } from './interface/Automation-response';
 
 @Controller('automation')
 export class AutomationController {
@@ -34,10 +33,10 @@ export class AutomationController {
     summary: 'Add new automation',
     description: 'Create new automation',
   })
-  @ApiResponse({ status: 201, type: AutomationDtoResponse })
+  @ApiResponse({ status: 201, type: AutomationDtoResponseOnlyId })
   async createAutomation(
     @Body() createAutomationDto: CreateAutomationDto,
-  ): Promise<AutomationDtoResponse> {
+  ): Promise<AutomationDtoResponseOnlyId> {
     return this.automationService.create(createAutomationDto);
   }
 
@@ -54,7 +53,7 @@ export class AutomationController {
   @ApiResponse({ status: 200, type: AutomationDtoResponseOnlyId })
   async deleteAutomation(
     @Param('id') id: string,
-  ): Promise<AutomationResponseOnlyId> {
+  ): Promise<AutomationDtoResponseOnlyId> {
     return this.automationService.delete(id);
   }
 
@@ -68,11 +67,11 @@ export class AutomationController {
     type: String,
     example: 'id: 5e5eb0418aa9340f913008e5',
   })
-  @ApiResponse({ status: 200, type: AutomationDtoResponse })
+  @ApiResponse({ status: 200, type: AutomationDtoResponseOnlyId })
   async updateCriticalRatio(
     @Param('id') id: string,
     @Body() request: AutomationUpdateRequestDto,
-  ): Promise<AutomationDtoResponse> {
+  ): Promise<AutomationDtoResponseOnlyId> {
     return this.automationService.update(id, request.criticalRatio);
   }
 
@@ -88,7 +87,7 @@ export class AutomationController {
     return this.automationService.findAll(sortQuery);
   }
 
-  @Get('find')
+  @Get('findByEnvironmentName')
   @ApiOperation({
     summary: 'Filter automations',
     description: 'Filter automations by environment id',

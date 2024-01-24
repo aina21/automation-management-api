@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   database:
-    image: mongo
+    image: mongo:latest
     container_name: mongodb
     restart: unless-stopped
     ports:
