@@ -23,33 +23,33 @@ export class AutomationService {
   ) {}
 
   async updateCriticality() {
-    try {
-      const aggregationPipeline: PipelineStage[] = [
-        {
-          $setWindowFields: {
-            // Sorting the documents by criticalRatio in descending order.
-            sortBy: { criticalRatio: -1 },
-            // Calculating the rank for each document based on its criticalRatio.
-            // The rank is stored in the criticality field.
-            output: {
-              criticality: {
-                // The $denseRank operator is used to assign a continuous rank for each distinct criticalRatio.
-                // If multiple documents have the same criticalRatio, they receive the same rank.
-                // The next rank is always incremented by 1, regardless of the number of documents with the same value.
-                $denseRank: {},
-              },
+    const aggregationPipeline: PipelineStage[] = [
+      {
+        $setWindowFields: {
+          // Sorting the documents by criticalRatio in descending order.
+          sortBy: { criticalRatio: -1 },
+          // Calculating the rank for each document based on its criticalRatio.
+          // The rank is stored in the criticality field.
+          output: {
+            criticality: {
+              // The $denseRank operator is used to assign a continuous rank for each distinct criticalRatio.
+              // If multiple documents have the same criticalRatio, they receive the same rank.
+              // The next rank is always incremented by 1, regardless of the number of documents with the same value.
+              $denseRank: {},
             },
           },
         },
-      ];
+      },
+    ];
 
-      let bulkWriteOperations = [];
-      const batchSize = 1000;
+    let bulkWriteOperations = [];
+    const batchSize = 1000;
 
-      const cursor = this.automationModel
-        .aggregate(aggregationPipeline)
-        .cursor({ batchSize });
+    const cursor = this.automationModel
+      .aggregate(aggregationPipeline)
+      .cursor({ batchSize });
 
+    try {
       await cursor.eachAsync(async (doc) => {
         bulkWriteOperations.push({
           updateOne: {
@@ -90,26 +90,30 @@ export class AutomationService {
     return automationDtoResponse;
   }
 
+  async getEnvironment(environmentName: string) {
+    const environment =
+      await this.environmentService.getEnvironmentByName(environmentName);
+    if (!environment) {
+      throw new BadRequestException('Environment not found');
+    }
+    return environment;
+  }
+
   async create(
     automationCreateRequest: CreateAutomationDto,
   ): Promise<AutomationDtoResponse> {
     const createdAutomation = new this.automationModel(automationCreateRequest);
 
-    const environment = await this.environmentService.getEnvironmentByName(
+    const environment = await this.getEnvironment(
       automationCreateRequest.environmentName,
     );
-    if (!environment) {
-      throw new BadRequestException('Environment not found');
-    }
 
     createdAutomation.environmentId = new Types.ObjectId(environment._id);
     const automation = await createdAutomation.save();
 
     await this.updateCriticality();
 
-    const result = await this.automationModel.findById(automation).exec();
-
-    return this.toDto(result);
+    return this.toDto(await this.automationModel.findById(automation).exec());
   }
 
   async findAll(
@@ -131,13 +135,8 @@ export class AutomationService {
       .sort({ [sortName]: sortOption })
       .exec();
 
-    if (!result) {
-      throw new NotFoundException('Automation is empty');
-    }
-
     return result.map((automation) => this.toDto(automation));
   }
-
   async findByEnvironmentName(
     environmentName: string,
     sortQuery?: AutomationSortDto,
@@ -152,11 +151,7 @@ export class AutomationService {
     const skip = (page - 1) * limit;
     const sortOption = sortType === 'asc' ? 1 : -1;
 
-    const environment =
-      await this.environmentService.getEnvironmentByName(environmentName);
-    if (!environment) {
-      throw new BadRequestException('Environment not found');
-    }
+    const environment = await this.getEnvironment(environmentName);
 
     const result = await this.automationModel
       .find({
